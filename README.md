@@ -1,37 +1,130 @@
-# Invera ToDo-List Challenge (Python/Django Jr-SSr)
+Todo-challange
+==============
 
-El propósito de esta prueba es conocer tu capacidad para crear una pequeña aplicación funcional en un límite de tiempo. A continuación, encontrarás las funciones, los requisitos y los puntos clave que debés tener en cuenta durante el desarrollo.
+----
+# Download the repository
+```sh
+# SSH:
+git clone git@github.com:facub/todo-challenge.git
+# HTTPS:
+git clone https://github.com/facub/todo-challenge.git
+# Github CLI:
+gh repo clone facub/todo-challenge
+```
 
-## Qué queremos que hagas:
+---
 
-- El Challenge consiste en crear una aplicación web sencilla que permita a los usuarios crear y mantener una lista de tareas.
-- La entrega del resultado será en un nuevo fork de este repo y deberás hacer una pequeña demo del funcionamiento y desarrollo del proyecto ante un super comité de las más grandes mentes maestras de Invera, o a un par de devs, lo que sea más fácil de conseguir.
-- Podes contactarnos en caso que tengas alguna consulta.
+<div id="virtualenvs"></div>
 
-## Objetivos:
+# Run locally with virtualenv 
+### Python Versions
+This repository is tested under Python 3.10
 
-El usuario de la aplicación tiene que ser capaz de:
+Recomendation: Use python version 3.10
 
-- Autenticarse
-- Crear una tarea
-- Eliminar una tarea
-- Marcar tareas como completadas
-- Poder ver una lista de todas las tareas existentes
-- Filtrar/buscar tareas por fecha de creación y/o por el contenido de la misma
+### Installation
 
-## Qué evaluamos:
+#### Install virtualenvwrapper
+Virtualenvwrapper should be installed into the same 
+global site-packages area where virtualenv is installed. 
+You may need administrative privileges to do that. The easiest way to install it is using pip
 
-- Desarrollo utilizando Python, Django. No es necesario crear un Front-End, pero sí es necesario tener una API que permita cumplir con los objetivos de arriba.
-- Uso de librerías y paquetes estandares que reduzcan la cantidad de código propio añadido.
-- Calidad y arquitectura de código. Facilidad de lectura y mantenimiento del código. Estándares seguidos.
-- [Bonus] Manejo de logs.
-- [Bonus] Creación de tests (unitarias y de integración)
-- [Bonus] Unificar la solución propuesta en una imagen de Docker por repositorio para poder ser ejecutada en cualquier ambiente (si aplica para full stack).
+1. Install virtualenvwrapper using pip
+	```sh
+	sudo pip install virtualenvwrapper
+	```
 
-## Requerimientos de entrega:
+2. Open .bashrc or .zshrc file and add:
+	```sh
+	# Virtualenvwrapper
+	export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3 # Optional
+	export VIRTUALENVWRAPPER_VIRTUALENV=/usr/local/bin/virtualenv  # Or ~/.local/bin/virtualenv
+	export PROJECT_HOME=$HOME/Devel
+	export WORKON_HOME=$HOME/Envs
+	source /usr/local/bin/virtualenvwrapper.sh  # Or ~/.local/bin/virtualenvwrapper.sh
+	```
+3. Reload startup file
+	```sh
+	source ~/.bashrc
+	```
+	or
+	```sh
+	source ~/.zshrc
+	```
 
-- Hacer un fork del proyecto y pushearlo en github. Puede ser privado.
-- La solución debe correr correctamente.
-- El Readme debe contener todas las instrucciones para poder levantar la aplicación, en caso de ser necesario, y explicar cómo se usa.
-- Disponibilidad para realizar una pequeña demo del proyecto al finalizar el challenge.
-- Tiempo para la entrega: Aproximadamente 7 días.
+
+### Create an enviroment
+1. Create the environment
+	```sh
+	cd /path/to/repo/todo
+	mkvirtualenv -a . --python=python3.10 todo
+	deactivate
+	```
+2. Add to `~/Envs/todo/bin/postactivate`:
+
+	```sh
+	export PYTHONPATH=[/path/to/repo/]todo
+	```
+
+### Install the requirements
+1. Activate the enviroment
+
+	```sh
+	workon todo
+	```
+2. Now install dependecies from:
+	```sh
+	pip install -r requirements.txt
+	```
+
+### Migrations
+```sh
+python manage.py migrate
+```
+## Run on port
+```sh
+python manage.py runserver
+```
+## Access to Todo-challange:
+```sh
+http://localhost:8000/login
+```
+
+## Access to Admin and database tables:
+### First, create a superuser to manage admin:
+```sh
+python manage.py createsuperuser
+```
+### Link to admin: 
+```sh
+http://localhost:8000/admin
+```
+
+
+---
+# Run locally with docker
+
+Update your system before installing docker
+```sh
+sudo apt update
+```
+
+Install Docker and Docker compose
+```sh
+sudo apt install docker.io
+```
+Docker Compose:
+
+```sh
+sudo apt install docker-compose
+```
+
+### Run docker to execute the server:
+1. First build the image:
+    ```sh
+    docker build -t todo . 
+    ```
+2. Run the docker:
+    ```sh
+    docker run -p 8000:8000 todo
+    ```

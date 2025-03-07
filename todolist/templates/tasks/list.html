@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Task List</h2>
+
+<div class="mb-3">
+    <a href="/tasks/create/" class="btn btn-success">Create New Task</a>
+</div>
+
+<!-- Formulario de filtro -->
+<form id="filterForm" class="mb-3">
+    <div class="row g-3">
+        <!-- Campo de búsqueda -->
+        <div class="col-md-4">
+            <input 
+                type="text" 
+                class="form-control" 
+                name="search" 
+                placeholder="Search by title or description"
+            >
+        </div>
+        <!-- Selector de estado -->
+        <div class="col-md-3">
+            <select class="form-select" name="completed">
+                <option value="">Filter by status</option>
+                <option value="true">Completed</option>
+                <option value="false">Pending</option>
+            </select>
+        </div>
+        <!-- Botón de aplicar filtros -->
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+        </div>
+    </div>
+</form>
+
+<div id="taskList"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadTasks() {
+    const token = getAuthToken();
+    const form = document.getElementById('filterForm');
+    const formData = new FormData(form);
+
+    // Construir query string con los filtros
+    const params = new URLSearchParams();
+    if (formData.get('search')) params.append('search', formData.get('search'));
+    if (formData.get('completed')) params.append('completed', formData.get('completed'));
+
+    fetch(`/api/tasks/my-tasks/?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(response => handleResponse(response))
+    .then(data => {
+        let html = `
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        data.forEach(task => {
+            html += `
+                <tr>
+                    <td>${task.title}</td>
+                    <td class="text-justify">${task.description || 'No description'}</td>
+                    <td>
+                        <div class="status-container d-flex flex-column align-items-center">
+                            <div class="form-check form-switch">
+                                <input 
+                                    class="form-check-input" 
+                                    type="checkbox" 
+                                    role="switch" 
+                                    id="task-${task.id}" 
+                                    ${task.completed ? 'checked' : ''}
+                                    onchange="toggleComplete(${task.id}, this)"
+                                >
+                            </div>
+                            <span class="status-text mt-1 ${task.completed ? 'text-success' : 'text-warning'}">
+                                ${task.completed ? 'Completed' : 'Pending'}
+                            </span>
+                        </div>
+                    </td>
+                    <td>
+                        <!-- Botón de eliminar con ícono -->
+                        <button 
+                            class="btn btn-sm btn-danger" 
+                            onclick="deleteTask(${task.id})"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top" 
+                            title="Delete task"
+                        >
+                            ×
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        document.getElementById('taskList').innerHTML = html;
+    })
+    .catch(error => {
+        document.getElementById('taskList').innerHTML = `
+            <div class="alert alert-danger">${error.message}</div>
+        `;
+    });
+}
+
+// Cargar tareas al iniciar
+document.addEventListener('DOMContentLoaded', () => {
+    loadTasks();
+
+    // Filtrar al enviar el formulario
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        console.log('Filtering tasks...');
+        loadTasks();
+    });
+});
+
+// Toggle with checkbox
+function toggleComplete(id, checkbox) {
+    const token = getAuthToken();
+    const originalState = checkbox.checked;
+
+    // Search for status text and container
+    const statusContainer = checkbox.closest('.status-container');
+    const statusText = statusContainer.querySelector('.status-text');
+
+    fetch(`/api/tasks/${id}/toggle-complete/`, {
+        method: 'POST',
+        headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            checkbox.checked = originalState; // Reverse checkbox state
+            throw new Error('Failed to update status');
+        }
+        // Update status text and color
+        statusText.textContent = checkbox.checked ? 'Completed' : 'Pending';
+        statusText.className = `status-text mt-1 ${
+            checkbox.checked ? 'text-success' : 'text-warning'
+        }`;
+    })
+    .catch(error => {
+        console.error('Toggle failed:', error);
+        alert('Error updating task status. Try again.');
+    });
+}
+
+function deleteTask(id) {
+    // Confirm delete before proceeding
+    if (!confirm('Are you sure you want to delete this task?')) return;
+
+    const token = getAuthToken();
+
+    // Deactivating button to prevent multiple clicks
+    const deleteButton = event.target;
+    deleteButton.disabled = true;
+    deleteButton.textContent = 'Deleting...';
+
+    fetch(`/api/tasks/${id}/`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(response => {
+        if (response.ok) {
+            // Delete successful
+            loadTasks(); // Reload tasks
+        } else {
+            // Show error message
+            return response.json().then(error => {
+                throw new Error(error.detail || 'Error deleting task');
+            });
+        }
+    })
+    .catch(error => {
+        // Show error message
+        console.error('Delete failed:', error);
+        alert('Error deleting task. Try again.');
+        
+        // Revert button state
+        deleteButton.disabled = false;
+        deleteButton.textContent = '×';
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Task Manager</a>
+            <div class="d-flex">
+                <a href="/register/" class="btn btn-outline-light me-2">Register</a>
+                <a href="/login/" class="btn btn-outline-light me-2">Login</a>
+                <button id="logoutButton" class="btn btn-outline-danger">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Scripts globales -->
+    <script>
+
+        document.getElementById('logoutButton')?.addEventListener('click', function() {
+            // Delete authentication token from localStorage
+            localStorage.removeItem('auth_token');
+            
+            // Redirect to login page
+            window.location.href = '/login/';
+        });
+
+        // Function to get the authentication token
+        function getAuthToken() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                window.location.href = '/login/';
+                throw new Error('No authentication token found');
+            }
+            return token;
+        }
+
+        // Function to handle API responses
+        function handleResponse(response) {
+            return response.json().then(data => {
+                if (!response.ok) {
+                    const error = (data && data.detail) ? data.detail : response.statusText;
+                    throw new Error(error);
+                }
+                return data;
+            });
+        }
+    </script>
+
+    <style>
+    .status-text {
+        font-size: 0.875em;
+        transition: color 0.3s;
+    }
+    /* Styles to improve the table layout */
+    .table td, .table th {
+        vertical-align: middle; /* Align text vertically centered */
+        text-align: center; /* Align text horizontally centered */
+    }
+
+    /* Styles to improve the status container layout */
+    .status-container {
+        min-width: 150px; /* Set a minimum width */
+    }
+
+    /* Styles to improve the description text layout */
+    .text-justify {
+        white-space: normal;
+        word-wrap: break-word;
+        max-width: 300px; /* Set a maximum width */
+    }
+    </style>
+
+    <!-- Specific scripts -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

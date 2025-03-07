@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Login</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form id="loginForm">
+            <!-- Username Field -->
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input type="text" class="form-control" name="username" required>
+                <div class="invalid-feedback" id="loginUsernameError"></div>
+            </div>
+
+            <!-- Password Field -->
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-control" name="password" required>
+                <div class="invalid-feedback" id="loginPasswordError"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+
+        <!-- General messages -->
+        <div id="loginMessage" class="mt-3"></div>
+    </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    // Clear previous errors
+    document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+    document.getElementById('loginMessage').innerHTML = '';
+
+    const formData = new FormData(this);
+    const data = {
+        username: formData.get('username'),
+        password: formData.get('password')
+    };
+
+    try {
+        const response = await fetch('/api/login/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            // Guardar token y redirigir
+            localStorage.setItem('auth_token', result.access);
+            document.getElementById('loginMessage').innerHTML = `
+                <div class="alert alert-success">
+                    Login successful! Redirecting to tasks...
+                </div>
+            `;
+            
+            // Redirigir después de 2 segundos
+            setTimeout(() => {
+                window.location.href = '/tasks/';
+            }, 2000);
+        } else {
+            // Mostrar errores
+            if (result.detail) {
+                document.getElementById('loginMessage').innerHTML = `
+                    <div class="alert alert-danger">${result.detail}</div>
+                `;
+            }
+        }
+    } catch (error) {
+        document.getElementById('loginMessage').innerHTML = `
+            <div class="alert alert-danger">Unexpected error. Try again.</div>
+        `;
+    }
+});
+</script>
+{% endblock %}

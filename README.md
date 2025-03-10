@@ -1,4 +1,4 @@
-Todo-challange
+Todo-challenge
 ==============
 
 ----
@@ -85,7 +85,7 @@ python manage.py migrate
 ```sh
 python manage.py runserver
 ```
-## Access to Todo-challange:
+## Access to Todo-challenge:
 ```sh
 http://localhost:8000/login
 ```

@@ -15,17 +15,54 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Task',
+            name="Task",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(help_text='Short description of the task', max_length=200)),
-                ('description', models.TextField(blank=True, help_text='Detailed task description (optional)')),
-                ('completed', models.BooleanField(default=False, help_text='Indicates if the task is finished')),
-                ('created_at', models.DateTimeField(auto_now_add=True, help_text='Timestamp when the task was created')),
-                ('user', models.ForeignKey(help_text='Owner of the task', on_delete=django.db.models.deletion.CASCADE, related_name='tasks', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "title",
+                    models.CharField(
+                        help_text="Short description of the task", max_length=200
+                    ),
+                ),
+                (
+                    "description",
+                    models.TextField(
+                        blank=True, help_text="Detailed task description (optional)"
+                    ),
+                ),
+                (
+                    "completed",
+                    models.BooleanField(
+                        default=False, help_text="Indicates if the task is finished"
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(
+                        auto_now_add=True,
+                        help_text="Timestamp when the task was created",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        help_text="Owner of the task",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="tasks",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
     ]

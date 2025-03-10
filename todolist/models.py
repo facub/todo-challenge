@@ -1,5 +1,6 @@
 # Stantard imports
 import logging
+
 # Django imports
 from django.db import models
 from django.contrib.auth.models import User
@@ -14,12 +15,23 @@ class Task(models.Model):
     """
     Task model representing user tasks with completion status and timestamps.
     """
-    
+
     title = models.CharField(max_length=200, help_text="Short description of the task")
-    description = models.TextField(blank=True, help_text="Detailed task description (optional)")
-    completed = models.BooleanField(default=False, help_text="Indicates if the task is finished")
-    created_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp when the task was created")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tasks", help_text="Owner of the task")
+    description = models.TextField(
+        blank=True, help_text="Detailed task description (optional)"
+    )
+    completed = models.BooleanField(
+        default=False, help_text="Indicates if the task is finished"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="Timestamp when the task was created"
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="tasks",
+        help_text="Owner of the task",
+    )
 
     class Meta:
         ordering = ["-created_at"]

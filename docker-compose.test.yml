@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+  test-db:
+    image: postgres:15-alpine
+    env_file:
+      - environments/.env.test
+    environment:
+      POSTGRES_DB: postgres_test_db
+      POSTGRES_USER: postgres_test_user
+      POSTGRES_PASSWORD: postgres_test_password
+      POSTGRES_HOST_AUTH_METHOD: trust # This is for testing purposes only
+    volumes:
+      - ./environments/init-test-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres_test_user -d postgres_test_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  test-web:
+    build:
+      context: .
+      target: test
+    env_file:
+      - environments/.env.test
+    volumes:
+      - .:/app
+    command: >
+      bash -c "python manage.py migrate && coverage run -m pytest && coverage report -m"
+    depends_on:
+      test-db:
+        condition: service_healthy
+
+volumes:
+  test_postgres_data:

@@ -54,6 +54,12 @@ function loadTasks() {
     })
     .then(response => handleResponse(response))
     .then(data => {
+        if (data.length === 0) {
+            document.getElementById('taskList').innerHTML = `
+                <div class="alert alert-info">No tasks found</div>
+            `;
+            return;
+        }
         let html = `
             <table class="table table-striped">
                 <thead>

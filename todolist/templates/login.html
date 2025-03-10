@@ -52,20 +52,21 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         const result = await response.json();
 
         if (response.ok) {
-            // Guardar token y redirigir
+            // Save token in localStorage
             localStorage.setItem('auth_token', result.access);
+            localStorage.setItem('refresh_token', result.refresh);
             document.getElementById('loginMessage').innerHTML = `
                 <div class="alert alert-success">
                     Login successful! Redirecting to tasks...
                 </div>
             `;
             
-            // Redirigir después de 2 segundos
+            // Redirect to tasks page after 2 seconds
             setTimeout(() => {
                 window.location.href = '/tasks/';
             }, 2000);
         } else {
-            // Mostrar errores
+            // Show error messages
             if (result.detail) {
                 document.getElementById('loginMessage').innerHTML = `
                     <div class="alert alert-danger">${result.detail}</div>

@@ -121,7 +121,12 @@ sudo apt install docker-compose
 
 ## Run docker to execute the server:
 ```sh
-docker-compose -f docker-compose.yml up
+docker-compose -f docker-compose.yml up -d
+```
+
+### Migrations
+```sh
+python manage.py migrate
 ```
 
 # Run tests and check coverage:
@@ -133,3 +138,18 @@ On docker:
 ```sh
 docker-compose -f docker-compose.test.yml up
 ```
+
+
+# Run docker with Nginx (Production simulation):
+```sh
+docker-compose -f docker-compose.nginx.yml up -d
+```
+### Migrations
+1. Set production db:
+	```
+	set -o allexport; source environments/.env.prod; set +o allexport
+	```
+2. Run migrations:
+	```sh
+	python manage.py migrate
+	```

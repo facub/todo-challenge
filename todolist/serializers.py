@@ -16,7 +16,7 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = ["id", "title", "description", "completed", "created_at", "user"]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "user"]
         extra_kwargs = {
             "description": {"required": False},
             "completed": {"read_only": True},
@@ -27,6 +27,22 @@ class TaskSerializer(serializers.ModelSerializer):
         if value is not None and not value.strip():
             raise serializers.ValidationError("Description cannot be empty")
         return value
+
+    def validate(self, data):
+        """
+        Validate user authentication and request context
+        """
+        request = self.context.get("request")
+
+        # Check if request context exists
+        if not request:
+            raise serializers.ValidationError("Request context not found")
+
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            raise serializers.ValidationError("User authentication required")
+
+        return data
 
 
 class UserSerializer(serializers.ModelSerializer):

@@ -119,7 +119,7 @@ Docker Compose:
 sudo apt install docker-compose
 ```
 
-### Run docker to execute the server:
+# Run docker to execute the server:
 1. First build the image:
     ```sh
     docker build -t todo . 
@@ -128,3 +128,13 @@ sudo apt install docker-compose
     ```sh
     docker run -p 8000:8000 todo
     ```
+
+# Run tests and check coverage:
+On local:
+```sh
+coverage run -m pytest && coverage report -m
+```
+On docker:
+```sh
+docker-compose -f docker-compose.test.yml up
+```

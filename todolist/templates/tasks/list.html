@@ -7,10 +7,10 @@
     <a href="/tasks/create/" class="btn btn-success">Create New Task</a>
 </div>
 
-<!-- Formulario de filtro -->
+<!-- Filter form -->
 <form id="filterForm" class="mb-3">
     <div class="row g-3">
-        <!-- Campo de búsqueda -->
+        <!-- Search input -->
         <div class="col-md-4">
             <input 
                 type="text" 
@@ -19,7 +19,16 @@
                 placeholder="Search by title or description"
             >
         </div>
-        <!-- Selector de estado -->
+        <!-- Created at filter -->
+        <div class="col-md-3">
+            <input 
+                type="date" 
+                class="form-control" 
+                name="created_at" 
+                placeholder="Search by created at"
+            >
+        </div>
+        <!-- Status filter -->
         <div class="col-md-3">
             <select class="form-select" name="completed">
                 <option value="">Filter by status</option>
@@ -27,7 +36,7 @@
                 <option value="false">Pending</option>
             </select>
         </div>
-        <!-- Botón de aplicar filtros -->
+        <!-- Submit button -->
         <div class="col-md-2">
             <button type="submit" class="btn btn-primary">Apply Filters</button>
         </div>
@@ -71,6 +80,7 @@ async function loadTasks() {
                         <th>Title</th>
                         <th>Description</th>
                         <th>Status</th>
+                        <th>Created</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -99,6 +109,7 @@ async function loadTasks() {
                             </span>
                         </div>
                     </td>
+                    <td>${task.created_at}</td>
                     <td>
                         <!-- Delete button -->
                         <button 
@@ -125,11 +136,11 @@ async function loadTasks() {
     });
 }
 
-// Cargar tareas al iniciar
+// Load tasks on page load
 document.addEventListener('DOMContentLoaded', () => {
     loadTasks();
 
-    // Filtrar al enviar el formulario
+    // Filter tasks on form submit
     document.getElementById('filterForm').addEventListener('submit', function(e) {
         e.preventDefault();
         console.log('Filtering tasks...');

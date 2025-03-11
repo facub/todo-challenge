@@ -19,6 +19,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 # App imports
 from .models import Task
 from .serializers import TaskSerializer, UserSerializer
+from .filters import TaskFilter
 
 
 # Logger configuration
@@ -172,7 +173,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ["completed", "created_at"]
+    filterset_class = TaskFilter
     search_fields = ["title", "description"]
 
     def get_queryset(self):
@@ -225,8 +226,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         logger.info(f"MY_TASKS: Count={queryset.count()} | User={request.user.id}")
 
         # Apply filters
-        filter_backends = [DjangoFilterBackend, SearchFilter]
-        for backend in filter_backends:
+        for backend in self.filter_backends:
             queryset = backend().filter_queryset(request, queryset, self)
 
         logger.info(f"MY_TASKS_FILTERED: Count={queryset.count()}")

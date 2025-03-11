@@ -22,6 +22,12 @@ class TaskSerializer(serializers.ModelSerializer):
             "completed": {"read_only": True},
         }
 
+    def to_representation(self, instance):
+        """Transform datetime to string representation"""
+        representation = super().to_representation(instance)
+        representation["created_at"] = instance.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        return representation
+
     def validate_description(self, value):
         """Ensure description is not empty"""
         if value is not None and not value.strip():

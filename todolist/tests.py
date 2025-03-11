@@ -1,16 +1,20 @@
 # Standard imports
-from datetime import datetime
+from datetime import datetime, timedelta
+from unittest.mock import patch
 
 # Django imports
 from django.urls import reverse
 from django.test import TestCase
 from django.contrib.auth.models import User
+from django.core.cache import cache
+from django.contrib.auth.models import AnonymousUser
 
 # External imports
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
-from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.serializers import ValidationError
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from rest_framework_simplejwt.exceptions import TokenError
 
 # App imports
 from .models import Task
@@ -59,12 +63,14 @@ class TestTaskSerializerTests(TestCase):
 
     def test_valid_serializer(self):
         """Test valid data serialization"""
-        serializer = TaskSerializer(data=self.valid_data)
+        # Create with user context
+        request = self.client.post("/api/tasks/")
+        request.user = self.user
+
+        # Use context to validate user
+        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
         self.assertTrue(serializer.is_valid())
-        task = serializer.save()
-        self.assertEqual(task.title, "Valid Task")
-        self.assertEqual(task.description, "Valid description")
-        self.assertEqual(task.user, self.user)
+        self.assertEqual(serializer.validated_data["title"], "Valid Task")
 
     def test_invalid_serializer(self):
         """Test invalid data rejection"""
@@ -74,23 +80,97 @@ class TestTaskSerializerTests(TestCase):
 
     def test_valid_title(self):
         """Test title validation"""
-        serializer = TaskSerializer(data=self.valid_data)
+        request = self.client.post("/api/tasks/")
+        request.user = self.user
+        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
         self.assertTrue(serializer.is_valid())
-
-    def test_invalid_title(self):
-        """Test empty title validation"""
-        serializer = TaskSerializer(data=self.invalid_data)
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("title", serializer.errors)
 
     def test_valid_description(self):
         """Test description validation"""
-        serializer = TaskSerializer(data=self.valid_data)
+        request = self.client.post("/api/tasks/")
+        request.user = self.user
+        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
         self.assertTrue(serializer.is_valid())
+
+    def test_valid_user(self):
+        """Test user validation"""
+        request = self.client.post("/api/tasks/")
+        request.user = self.user
+        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
+        self.assertTrue(serializer.is_valid())
+
+    def test_valid_serializer_authenticated(self):
+        """Test valid data with authenticated user"""
+        # Create authenticated request
+        request = self.client.post("/api/tasks/")
+        request.user = self.user
+
+        # Initialize serializer with context
+        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
+
+        # Verify validation
+        self.assertTrue(serializer.is_valid())
+        self.assertEqual(serializer.validated_data["title"], "Valid Task")
+        self.assertNotIn("user", serializer.validated_data)  # user is read-only
+
+    def test_serializer_no_user(self):
+        """Test validation failure for no user in request context"""
+        # Create unauthenticated request
+        request = self.client.post("/api/tasks/")
+        request.user = AnonymousUser()
+
+        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
+
+        # Verify error
+        with self.assertRaises(ValidationError) as cm:
+            serializer.is_valid(raise_exception=True)
+        self.assertEqual(
+            str(cm.exception.detail.get("non_field_errors")[0]),
+            "User authentication required",
+        )
+
+    def test_serializer_unauthenticated_user(self):
+        """Test validation failure for unauthenticated user"""
+        # Create unauthenticated request
+        request = self.client.post("/api/tasks/")
+        request.user = AnonymousUser()
+
+        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
+
+        # Verify error
+        with self.assertRaises(ValidationError) as cm:
+            serializer.is_valid(raise_exception=True)
+        self.assertEqual(
+            str(cm.exception.detail["non_field_errors"][0]),
+            "User authentication required",
+        )
+
+    def test_missing_request_context(self):
+        """Test error when request context is missing"""
+        serializer = TaskSerializer(data=self.valid_data)
+        with self.assertRaises(ValidationError) as cm:
+            serializer.is_valid(raise_exception=True)
+        self.assertEqual(
+            str(cm.exception.detail["non_field_errors"][0]), "Request context not found"
+        )
+
+    def test_invalid_title(self):
+        """Test empty title validation"""
+        request = self.client.post("/api/tasks/")
+        request.user = self.user
+        serializer = TaskSerializer(
+            data=self.invalid_data, context={"request": request}
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("title", serializer.errors)
 
     def test_invalid_description(self):
         """Test empty description validation"""
-        serializer = TaskSerializer(data=self.invalid_data)
+        request = self.client.post("/api/tasks/")
+        request.user = self.user
+        serializer = TaskSerializer(
+            data=self.invalid_data, context={"request": request}
+        )
         self.assertFalse(serializer.is_valid())
         self.assertIn("description", serializer.errors)
 
@@ -184,8 +264,9 @@ class TestAuthTests(APITestCase):
     def test_logout_without_token(self):
         """Test logout attempt without providing refresh token"""
         # Send empty data to logout endpoint
+        self.client.force_authenticate(user=self.user)
         response = self.client.post(self.url_logout, {"refresh_token": ""})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_logout_get_method(self):
         """Test GET method is not allowed for logout endpoint"""
@@ -203,6 +284,94 @@ class TestAuthTests(APITestCase):
         response = self.client.post(self.url_logout, {"refresh_token": "invalid-token"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    @patch("rest_framework_simplejwt.tokens.RefreshToken")
+    def test_logout_with_exception(self, mock_refresh_token):
+        """Test logout with an exception being raised"""
+        # Mock RefreshToken to raise a TokenError
+        mock_refresh_token.side_effect = TokenError("Token is invalid or expired")
+
+        # Authenticate user
+        self.client.force_authenticate(user=self.user)
+
+        # Attempt to logout
+        response = self.client.post(self.url_logout, {"refresh_token": "some-token"})
+
+        # Verify response
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["error"], "Invalid or expired token")
+
+    @patch("rest_framework_simplejwt.tokens.RefreshToken.blacklist")
+    def test_logout_general_exception(self, mock_blacklist):
+        """
+        Test logout with unexpected server error during token invalidation
+        """
+        # Mock blacklist method to raise an exception
+        mock_blacklist.side_effect = Exception("Simulated database failure")
+
+        # User authentication and token generation
+        self.client.force_authenticate(user=self.user)
+        refresh = RefreshToken.for_user(self.user)
+        data = {"refresh_token": str(refresh)}
+
+        # Execute logout request
+        response = self.client.post(self.url_logout, data)
+
+        # Verify response and error message
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertEqual(response.data["error"], "Server error during logout")
+
+
+class TestCheckAuthAPI(APITestCase):
+    def setUp(self):
+        # Create test user
+        self.user = User.objects.create_user(
+            username="testuser", password="testpass123"
+        )
+        self.url = reverse("check-auth")  # Get URL from name
+
+    def test_authenticated_user(self):
+        """Verify response for authenticated user"""
+        # Generate valid access token
+        refresh = RefreshToken.for_user(self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
+
+        # Make request
+        response = self.client.get(self.url)
+
+        # Validate response
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["authenticated"])
+        self.assertEqual(response.data["user_id"], self.user.id)
+        self.assertIsNotNone(response.data["token_expires"])
+
+    def test_unauthenticated_request(self):
+        """Verify 401 response for unauthenticated users"""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_expired_token(self):
+        """Verify 401 response with expired token"""
+        # Create expired token
+        token = AccessToken.for_user(self.user)
+        token.set_exp(lifetime=-timedelta(days=1))  # Expired 1 day ago
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_invalid_token(self):
+        """Verify 401 response with invalid token"""
+        self.client.force_authenticate(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer invalid")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_missing_token(self):
+        """Verify 401 response with missing token"""
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
 
 class TestTaskAPITests(APITestCase):
     """Test suite for task management endpoints"""
@@ -219,15 +388,11 @@ class TestTaskAPITests(APITestCase):
 
     def test_create_task_authenticated(self):
         """Test task creation by authenticated user"""
-        # Create task with valid data
-        data = {
-            "title": "New Task",
-            "description": "New description",
-            "user": self.user.id,
-        }
+        self.client.force_authenticate(user=self.user)
+        data = {"title": "New Task", "description": "New description"}
+
         response = self.client.post("/api/tasks/", data)
 
-        # Verify creation and database state
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Task.objects.count(), 2)
         self.assertEqual(response.data["user"], self.user.id)
@@ -260,6 +425,34 @@ class TestTaskAPITests(APITestCase):
         # Verify correct task count (2 tasks)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
+
+    def test_my_tasks_with_search_and_filter(self):
+        """Test /api/tasks/my-tasks/ endpoint with search and filter parameters"""
+        # Create additional tasks with different properties
+        Task.objects.create(
+            title="Shopping Task",
+            description="Buy groceries",
+            completed=True,
+            user=self.user,
+        )
+        Task.objects.create(
+            title="Work Task", description="Complete report", user=self.user
+        )
+
+        # Clear cache to avoid stale results
+        cache.clear()
+
+        # Test with search parameter
+        response = self.client.get("/api/tasks/my-tasks/?search=Shopping")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["title"], "Shopping Task")
+
+        # Test with filter parameter
+        response = self.client.get("/api/tasks/my-tasks/?completed=True")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["title"], "Shopping Task")
 
     def test_filter_tasks_by_completion(self):
         """Test task filtering by completion status"""

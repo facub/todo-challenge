@@ -9,6 +9,7 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust # This is for testing purposes only
     volumes:
       - postgres_data:/databases/data
+      - ./environments/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     healthcheck:

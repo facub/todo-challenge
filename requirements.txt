@@ -12,3 +12,5 @@ ipython==8.33.0
 pycodestyle==2.12.1
 # Python requirements
 psycopg2-binary==2.9.10
+# Gunicorn requirements
+gunicorn==20.1.0

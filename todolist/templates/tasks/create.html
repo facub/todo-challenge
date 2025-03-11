@@ -1,12 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-
+<!-- Authentication verification on page load -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async () => {
     try {
-        getAuthToken(); // Redirige si no hay token
-    } catch (e) {
+        // Verify authentication status with backend
+        const authData = await checkAuth();
+        if (!authData) return;  // Redirect if not authenticated
+    } catch (error) {
+        // Handle unexpected errors
         window.location.href = '/login/';
     }
 });
@@ -17,14 +20,18 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="card">
     <div class="card-body">
         <form id="taskForm">
+            <!-- Task title field (required) -->
             <div class="mb-3">
                 <label class="form-label">Title</label>
                 <input type="text" class="form-control" name="title" required>
             </div>
+            
+            <!-- Task description field (optional) -->
             <div class="mb-3">
                 <label class="form-label">Description</label>
                 <textarea class="form-control" name="description"></textarea>
             </div>
+            
             <button type="submit" class="btn btn-primary">Create Task</button>
         </form>
 
@@ -35,17 +42,56 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% block scripts %}
 <script>
-document.getElementById('taskForm').addEventListener('submit', async function(e) {
+/**
+ * Verify authentication status with backend API
+ * @returns {Promise<Object|null>} User data or null if unauthenticated
+ */
+async function checkAuth() {
+    try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            throw new Error('Authentication token not found');
+        }
+
+        const response = await fetch('/api/check-auth/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                localStorage.removeItem('auth_token');
+                window.location.href = '/login/';
+            }
+            throw new Error('Authentication validation failed');
+        }
+
+        return await response.json();
+        
+    } catch (error) {
+        console.error('Authentication check failed:', error);
+        window.location.href = '/login/';
+        return null;
+    }
+}
+
+// Task form submission handler
+document.getElementById('taskForm').addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    const token = getAuthToken();
-    const formData = new FormData(this);
-    const data = {
-        title: formData.get('title'),
-        description: formData.get('description')
-    };
-
     try {
+        // First verify authentication
+        const authData = await checkAuth();
+        if (!authData) return;  // Stop if not authenticated
+
+        const token = localStorage.getItem('auth_token');
+        const formData = new FormData(this);
+        const data = {
+            title: formData.get('title'),
+            description: formData.get('description'),
+        };
+        console.log('Task data:', data);
+
+        // Create task with valid credentials
         const response = await fetch('/api/tasks/', {
             method: 'POST',
             headers: {
@@ -59,9 +105,7 @@ document.getElementById('taskForm').addEventListener('submit', async function(e)
             document.getElementById('message').innerHTML = `
                 <div class="alert alert-success">Task created! Redirecting...</div>
             `;
-            setTimeout(() => {
-                window.location.href = '/tasks/';
-            }, 2000);
+            setTimeout(() => window.location.href = '/tasks/', 2000);
         }
     } catch (error) {
         document.getElementById('message').innerHTML = `

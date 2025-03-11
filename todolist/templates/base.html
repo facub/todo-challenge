@@ -13,7 +13,8 @@
             <div class="d-flex">
                 <a href="/register/" class="btn btn-outline-light me-2">Register</a>
                 <a href="/login/" class="btn btn-outline-light me-2">Login</a>
-                <button id="logoutButton" class="btn btn-outline-danger">Logout</button>
+                <a href="/list/" class="btn btn-outline-light me-2">Tasks</a>
+                <a href="/logout/" class="btn btn-outline-light me-2" onclick="logout()">Logout</a>
             </div>
         </div>
     </nav>
@@ -22,25 +23,54 @@
         {% block content %}{% endblock %}
     </div>
 
-    <!-- Scripts globales -->
+    <!-- Globals Scripts -->
     <script>
 
-        document.getElementById('logoutButton')?.addEventListener('click', function() {
-            // Delete authentication token from localStorage
+        function logout() {
+            console.log('Logout');
             localStorage.removeItem('auth_token');
-            
-            // Redirect to login page
-            window.location.href = '/login/';
-        });
+        }
 
-        // Function to get the authentication token
-        function getAuthToken() {
-            const token = localStorage.getItem('auth_token');
-            if (!token) {
+        /**
+         * Verify authentication status via backend API
+         * Checks both token existence and validity
+         */
+        async function checkAuth() {
+            try {
+                // 1. Check for token in localStorage
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    throw new Error('Authentication token not found');
+                }
+
+                // 2. Validate token with backend
+                const response = await fetch('/api/check-auth/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                // 3. Handle invalid/expired tokens
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        console.warn('Token invalid/expired - Removing stored token');
+                        localStorage.removeItem('auth_token');
+                    }
+                    throw new Error('Authentication validation failed');
+                }
+
+                // 4. Return validated user data
+                const authData = await response.json();
+                console.log('Valid authentication:', authData.username);
+                return authData;
+
+            } catch (error) {
+                // 5. Redirect to login on any authentication failure
+                console.error('Authentication check error:', error.message);
                 window.location.href = '/login/';
-                throw new Error('No authentication token found');
+                return null;
             }
-            return token;
         }
 
         // Function to handle API responses

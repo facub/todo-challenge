@@ -13,7 +13,7 @@
             <div class="d-flex">
                 <a href="/register/" class="btn btn-outline-light me-2">Register</a>
                 <a href="/login/" class="btn btn-outline-light me-2">Login</a>
-                <a href="/list/" class="btn btn-outline-light me-2">Tasks</a>
+                <a href="/tasks/" class="btn btn-outline-light me-2">Tasks</a>
                 <a href="/logout/" class="btn btn-outline-light me-2" onclick="logout()">Logout</a>
             </div>
         </div>
@@ -44,7 +44,7 @@
                 }
 
                 // 2. Validate token with backend
-                const response = await fetch('/api/check-auth/', {
+                const response = await fetch('/api/accounts/check-auth/', {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`

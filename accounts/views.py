@@ -44,7 +44,13 @@ class UserLoginView(APIView):
                 {"access": str(refresh.access_token), "refresh": str(refresh)}
             )
 
-        return Response({"error": "Invalid credentials"}, status=401)
+        return Response(
+            {
+                "error": "Invalid credentials",
+                "detail": "Username or password is incorrect. Please try again.",
+            },
+            status=401,
+        )
 
 
 class UserRegistrationView(APIView):

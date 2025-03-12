@@ -3,12 +3,14 @@ version: '3.9'
 services:
   db:
     image: postgres:15-alpine
-    env_file: environments/.env.prod
+    env_file: ../../environments/.env.prod
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust # This is for testing purposes only
     volumes:
-      - postgres_data:/databases/prod
-      - ./environments/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - /databases/prod:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U todo_user -d todo_db"]
       interval: 5s
@@ -16,9 +18,11 @@ services:
       retries: 5
 
   web:
-    build: .
+    build:
+      context: ../../
+      dockerfile: docker/local/Dockerfile
     command: gunicorn todochallenge.wsgi:application --bind 0.0.0.0:8000
-    env_file: environments/.env.prod
+    env_file: ../../environments/.env.prod
     volumes:
       - static_volume:/app/static
     expose:

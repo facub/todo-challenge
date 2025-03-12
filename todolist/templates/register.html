@@ -32,7 +32,7 @@
 document.getElementById('registerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    // Limpiar errores anteriores
+    // Reset error messages
     document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
     document.getElementById('generalError').classList.add('d-none');
 
@@ -52,7 +52,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         const result = await response.json();
 
         if (response.ok) {
-            // Mostrar éxito y redirigir
+            // Show success message and redirect to login page
             document.getElementById('generalError').classList.remove('d-none');
             document.getElementById('generalError').classList.add('success');
             document.getElementById('generalError').textContent = '¡Login successful! Redirecting to login page...';
@@ -61,7 +61,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
                 window.location.href = '/login/';
             }, 2000);
         } else {
-            // Mostrar errores específicos
+            // Show error messages
             if (result.username) {
                 document.getElementById('usernameError').textContent = result.username[0];
                 document.querySelector('[name="username"]').classList.add('is-invalid');

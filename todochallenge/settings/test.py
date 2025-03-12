@@ -9,9 +9,6 @@ DATABASES = {
         "PASSWORD": "test_password",
         "HOST": "test-db",
         "PORT": "5432",
-        "TEST": {
-            "NAME": "test_test_todo_db",
-        },
     }
 }
 

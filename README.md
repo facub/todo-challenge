@@ -100,6 +100,16 @@ python manage.py createsuperuser
 http://localhost:8000/admin
 ```
 
+# Run tests and check coverage:
+### On local:
+```sh
+coverage run -m pytest && coverage report -m
+```
+### On docker:
+Note: Go to ```docker/test/``` before running compose
+```sh
+docker-compose -f docker-compose.test.yml up -d
+```
 
 ---
 # Run locally with docker
@@ -120,34 +130,33 @@ sudo apt install docker-compose
 ```
 
 ## Run docker to execute the server:
+### Run docker compose:
+Note: Go to ```docker/local/``` before running compose
 ```sh
-docker-compose -f docker-compose.yml up -d
+docker-compose -f docker-compose.yml -d --build
 ```
 
-### Migrations
+### Migrations:
 ```sh
 python manage.py migrate
 ```
 
-# Run tests and check coverage:
-On local:
-```sh
-coverage run -m pytest && coverage report -m
-```
-On docker:
-```sh
-docker-compose -f docker-compose.test.yml up
-```
-
-
 # Run docker with Nginx (Production simulation):
+### Note: Create directory ```/databases/prod``` to save database permanently
 ```sh
-docker-compose -f docker-compose.nginx.yml up -d
+mkdir -p /databases/prod
+chmod 700 /databases/prod
 ```
-### Migrations
+### Run docker compose:
+Note: Go to ```docker/production/``` before running compose
+```sh
+docker-compose -f docker-compose.nginx.yml up -d --build
+```
+
+### Migrations:
 1. Set production db:
 	```
-	set -o allexport; source environments/.env.prod; set +o allexport
+	set -o allexport; source environments/.env.remote; set +o allexport
 	```
 2. Run migrations:
 	```sh

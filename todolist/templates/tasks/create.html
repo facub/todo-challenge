@@ -53,7 +53,7 @@ async function checkAuth() {
             throw new Error('Authentication token not found');
         }
 
-        const response = await fetch('/api/check-auth/', {
+        const response = await fetch('/api/accounts/check-auth/', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 

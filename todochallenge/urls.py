@@ -14,6 +14,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # API URLs
     path("api/", include("todolist.urls")),
+    # JWT Auth URLs
+    path("api/accounts/", include("accounts.urls")),
 ]
 
 urlpatterns += [

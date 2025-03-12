@@ -7,6 +7,7 @@ django-crispy-forms==2.3
 django-extensions==3.2.3
 django-environ==0.12.0
 # Testing requirements
+pytest-django==4.10.0
 coverage==7.3.2
 ipython==8.33.0
 pycodestyle==2.12.1

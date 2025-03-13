@@ -11,33 +11,82 @@
 <form id="filterForm" class="mb-3">
     <div class="row g-3">
         <!-- Search input -->
-        <div class="col-md-4">
+        <div class="col-md-12">
+            <label for="search" class="form-label">Search by Title or Description</label>
             <input 
                 type="text"
                 class="form-control"
                 name="search"
-                placeholder="Search by title or description"
+                id="search"
+                placeholder="Enter keyword..."
             >
         </div>
-        <!-- Created at filter -->
-        <div class="col-md-3">
-            <input 
-                type="date"
-                class="form-control"
-                name="created_at" 
-                placeholder="Search by created at"
-            >
+
+        <!-- Group: Date Filters -->
+        <div class="col-md-12">
+            <h6 class="mb-2">Date Filters</h6>
+            <div class="row g-3">
+                <!-- Created at filter -->
+                <div class="col-md-3">
+                    <label for="created_at" class="form-label">Created Date</label>
+                    <input 
+                        type="date"
+                        class="form-control"
+                        name="created_at"
+                        id="created_at"
+                    >
+                </div>
+                <!-- Completed at filter -->
+                <div class="col-md-3">
+                    <label for="completed_at" class="form-label">Completed Date</label>
+                    <input 
+                        type="date"
+                        class="form-control"
+                        name="completed_at"
+                        id="completed_at"
+                    >
+                </div>
+                <!-- Due date filter -->
+                <div class="col-md-3">
+                    <label for="due_date" class="form-label">Due Date</label>
+                    <input 
+                        type="date"
+                        class="form-control"
+                        name="due_date"
+                        id="due_date"
+                    >
+                </div>
+            </div>
         </div>
-        <!-- Status filter -->
-        <div class="col-md-3">
-            <select class="form-select" name="completed">
-                <option value="">Filter by status</option>
-                <option value="true">Completed</option>
-                <option value="false">Pending</option>
-            </select>
+
+        <!-- Group: Dropdown Filters -->
+        <div class="col-md-12">
+            <h6 class="mb-2">Dropdown Filters</h6>
+            <div class="row g-3">
+                <!-- Priority filter -->
+                <div class="col-md-3">
+                    <label for="priority" class="form-label">Priority</label>
+                    <select class="form-select" name="priority" id="priority">
+                        <option value="">Filter by priority</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <!-- Status filter -->
+                <div class="col-md-3">
+                    <label for="completed" class="form-label">Status</label>
+                    <select class="form-select" name="completed" id="completed">
+                        <option value="">Filter by status</option>
+                        <option value="true">Completed</option>
+                        <option value="false">Pending</option>
+                    </select>
+                </div>
+            </div>
         </div>
+
         <!-- Submit button -->
-        <div class="col-md-2">
+        <div class="col-md-12 d-flex justify-content-end">
             <button type="submit" class="btn btn-primary">Apply Filters</button>
         </div>
     </div>

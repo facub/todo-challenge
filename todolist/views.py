@@ -41,7 +41,16 @@ class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = TaskFilter
-    search_fields = ["title", "description"]
+    search_fields = [
+        "title",
+        "description",
+        "category__name",
+        "priority",
+        "due_date",
+        "completed",
+        "created_at",
+        "completed_at",
+    ]
 
     def get_queryset(self):
         """Optimized queryset with select_related"""
@@ -104,9 +113,8 @@ class TaskViewSet(viewsets.ModelViewSet):
 
         logger.info(f"MY_TASKS: Count={queryset.count()} | User={request.user.id}")
 
-        # Apply filters
-        for backend in self.filter_backends:
-            queryset = backend().filter_queryset(request, queryset, self)
+        # Apply filters using self.filter_queryset
+        queryset = self.filter_queryset(queryset)
 
         logger.info(f"MY_TASKS_FILTERED: Count={queryset.count()}")
 

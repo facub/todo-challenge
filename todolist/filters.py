@@ -1,22 +1,31 @@
 # Django imports
-from django_filters import FilterSet, DateFilter, ChoiceFilter
+from django_filters import (
+    FilterSet,
+    DateFilter,
+    ChoiceFilter,
+    CharFilter,
+    BooleanFilter,
+)
 
 # App imports
 from .models import Task, PRIORITY_CHOICES
 
 
 class TaskFilter(FilterSet):
+    title = CharFilter(field_name="title", lookup_expr="icontains")
     created_at = DateFilter(field_name="created_at", lookup_expr="date")
+    completed_at = DateFilter(field_name="completed_at", lookup_expr="date")
+    due_date = DateFilter(field_name="due_date")
     priority = ChoiceFilter(choices=PRIORITY_CHOICES)
-    due_date_before = DateFilter(field_name="due_date", lookup_expr="lte")
-    due_date_after = DateFilter(field_name="due_date", lookup_expr="gte")
+    completed = BooleanFilter()
 
     class Meta:
         model = Task
         fields = [
-            "completed",
+            "title",
             "created_at",
+            "completed_at",
+            "due_date",
             "priority",
-            "due_date_before",
-            "due_date_after",
+            "completed",
         ]

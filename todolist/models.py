@@ -9,6 +9,18 @@ from django.utils.translation import gettext_lazy as _
 
 # Logger configuration
 logger = logging.getLogger(__name__)
+PRIORITY_CHOICES = [
+    ("low", _("Low")),
+    ("medium", _("Medium")),
+    ("high", _("High")),
+]
+
+
+class TaskCategory(models.Model):
+    name = models.CharField(max_length=50, unique=True, help_text="Category name")
+
+    def __str__(self):
+        return self.name
 
 
 class Task(models.Model):
@@ -31,6 +43,28 @@ class Task(models.Model):
         on_delete=models.CASCADE,
         related_name="tasks",
         help_text="Owner of the task",
+    )
+    due_date = models.DateField(
+        null=True, blank=True, help_text="Due date for the task (optional)"
+    )
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when the task was marked as completed",
+    )
+    priority = models.CharField(
+        max_length=10,
+        choices=PRIORITY_CHOICES,
+        default="medium",
+        help_text="Priority level for the task",
+    )
+    category = models.ForeignKey(
+        TaskCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tasks",
+        help_text="Category or tag for the task",
     )
 
     class Meta:

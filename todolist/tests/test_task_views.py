@@ -1,173 +1,12 @@
-# Standard imports
-from datetime import datetime
-
 # Django imports
-from django.test import TestCase
 from django.contrib.auth.models import User
-from django.contrib.auth.models import AnonymousUser
 
 # External imports
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
-from rest_framework.serializers import ValidationError
 
 # App imports
-from .models import Task
-from .serializers import TaskSerializer
-
-
-class TestTaskModelTests(TestCase):
-    """Test suite for the Task model"""
-
-    def setUp(self):
-        self.user = User.objects.create_user(
-            username="testuser", password="testpass123"
-        )
-        self.task = Task.objects.create(
-            title="Test Task", description="Test Description", user=self.user
-        )
-
-    def test_task_creation(self):
-        """Test task creation and default values"""
-        self.assertEqual(self.task.completed, False)
-        self.assertIsInstance(self.task.created_at, datetime)
-        self.assertEqual(str(self.task), "Test Task (Pending)")
-
-    def test_task_str_representation(self):
-        """Test __str__ method output"""
-        self.task.completed = True
-        self.assertEqual(str(self.task), "Test Task (Completed)")
-
-
-class TestTaskSerializerTests(TestCase):
-    """Test suite for the Task serializer"""
-
-    def setUp(self):
-        self.user = User.objects.create_user(
-            username="serializeruser", password="test123"
-        )
-        self.valid_data = {
-            "title": "Valid Task",
-            "description": "Valid description",
-            "user": self.user.id,
-        }
-        self.invalid_data = {
-            "title": "",  # Empty title should fail
-            "description": "",  # Empty description should fail
-        }
-
-    def test_valid_serializer(self):
-        """Test valid data serialization"""
-        # Create with user context
-        request = self.client.post("/api/tasks/")
-        request.user = self.user
-
-        # Use context to validate user
-        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
-        self.assertTrue(serializer.is_valid())
-        self.assertEqual(serializer.validated_data["title"], "Valid Task")
-
-    def test_invalid_serializer(self):
-        """Test invalid data rejection"""
-        serializer = TaskSerializer(data=self.invalid_data)
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("title", serializer.errors)
-
-    def test_valid_title(self):
-        """Test title validation"""
-        request = self.client.post("/api/tasks/")
-        request.user = self.user
-        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
-        self.assertTrue(serializer.is_valid())
-
-    def test_valid_description(self):
-        """Test description validation"""
-        request = self.client.post("/api/tasks/")
-        request.user = self.user
-        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
-        self.assertTrue(serializer.is_valid())
-
-    def test_valid_user(self):
-        """Test user validation"""
-        request = self.client.post("/api/tasks/")
-        request.user = self.user
-        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
-        self.assertTrue(serializer.is_valid())
-
-    def test_valid_serializer_authenticated(self):
-        """Test valid data with authenticated user"""
-        # Create authenticated request
-        request = self.client.post("/api/tasks/")
-        request.user = self.user
-
-        # Initialize serializer with context
-        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
-
-        # Verify validation
-        self.assertTrue(serializer.is_valid())
-        self.assertEqual(serializer.validated_data["title"], "Valid Task")
-        self.assertNotIn("user", serializer.validated_data)  # user is read-only
-
-    def test_serializer_no_user(self):
-        """Test validation failure for no user in request context"""
-        # Create unauthenticated request
-        request = self.client.post("/api/tasks/")
-        request.user = AnonymousUser()
-
-        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
-
-        # Verify error
-        with self.assertRaises(ValidationError) as cm:
-            serializer.is_valid(raise_exception=True)
-        self.assertEqual(
-            str(cm.exception.detail.get("non_field_errors")[0]),
-            "User authentication required",
-        )
-
-    def test_serializer_unauthenticated_user(self):
-        """Test validation failure for unauthenticated user"""
-        # Create unauthenticated request
-        request = self.client.post("/api/tasks/")
-        request.user = AnonymousUser()
-
-        serializer = TaskSerializer(data=self.valid_data, context={"request": request})
-
-        # Verify error
-        with self.assertRaises(ValidationError) as cm:
-            serializer.is_valid(raise_exception=True)
-        self.assertEqual(
-            str(cm.exception.detail["non_field_errors"][0]),
-            "User authentication required",
-        )
-
-    def test_missing_request_context(self):
-        """Test error when request context is missing"""
-        serializer = TaskSerializer(data=self.valid_data)
-        with self.assertRaises(ValidationError) as cm:
-            serializer.is_valid(raise_exception=True)
-        self.assertEqual(
-            str(cm.exception.detail["non_field_errors"][0]), "Request context not found"
-        )
-
-    def test_invalid_title(self):
-        """Test empty title validation"""
-        request = self.client.post("/api/tasks/")
-        request.user = self.user
-        serializer = TaskSerializer(
-            data=self.invalid_data, context={"request": request}
-        )
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("title", serializer.errors)
-
-    def test_invalid_description(self):
-        """Test empty description validation"""
-        request = self.client.post("/api/tasks/")
-        request.user = self.user
-        serializer = TaskSerializer(
-            data=self.invalid_data, context={"request": request}
-        )
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("description", serializer.errors)
+from todolist.models import Task, TaskCategory
 
 
 class TestTaskAPITests(APITestCase):
@@ -186,7 +25,11 @@ class TestTaskAPITests(APITestCase):
     def test_create_task_authenticated(self):
         """Test task creation by authenticated user"""
         self.client.force_authenticate(user=self.user)
-        data = {"title": "New Task", "description": "New description"}
+        data = {
+            "title": "New Task",
+            "description": "New description",
+            "priority": "low",
+        }
 
         response = self.client.post("/api/tasks/", data)
 
@@ -282,6 +125,19 @@ class TestTaskAPITests(APITestCase):
         self.task.refresh_from_db()
         self.assertTrue(self.task.completed)
 
+    def test_toggle_pending(self):
+        """Test task completion status toggle"""
+        # Toggle completion via endpoint
+        self.task.completed = True
+        self.task.save()
+        url = f"/api/tasks/{self.task.id}/toggle-complete/"
+        response = self.client.post(url)
+
+        # Verify state change
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.task.refresh_from_db()
+        self.assertFalse(self.task.completed)
+
     def test_toggle_complete_unauthorized(self):
         """Test toggle attempt on another user's task"""
         # Switch to different user
@@ -335,3 +191,20 @@ class TestTaskAPITests(APITestCase):
         # Verify validation error
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("title", response.data)
+
+    def test_task_creation_with_category_and_due_date(self):
+        """Test task creation with category, priority, and due date"""
+        category = TaskCategory.objects.create(name="Work")
+        data = {
+            "title": "New Task",
+            "description": "With category and due date",
+            "category": category.id,
+            "priority": "high",
+            "due_date": "2023-12-31",
+        }
+        response = self.client.post("/api/tasks/", data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        task = Task.objects.get(id=response.data["id"])
+        self.assertEqual(task.category.id, category.id)
+        self.assertEqual(task.priority, "high")
+        self.assertEqual(str(task.due_date), "2023-12-31")

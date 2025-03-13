@@ -3,15 +3,19 @@ import logging
 
 # External imports
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, permissions, status
+from rest_framework.views import APIView
+from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import PageNumberPagination
 
+# Django imports
+from django.utils import timezone
+
 # App imports
-from .models import Task
-from .serializers import TaskSerializer
+from .models import Task, TaskCategory
+from .serializers import TaskSerializer, TaskCategorySerializer
 from .filters import TaskFilter
 
 
@@ -41,10 +45,13 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Optimized queryset with select_related"""
-        # Fetch tasks for authenticated user
-        tasks = Task.objects.filter(user=self.request.user).select_related("user")
+        tasks = Task.objects.filter(user=self.request.user).select_related(
+            "user", "category"
+        )
         logger.info(
-            f"TASKS_FETCHED: Count={tasks.count()} | User={self.request.user.id}"
+            f"TASKS_FETCHED: Count={tasks.count()} | User={self.request.user.id} | "
+            f"Priorities={[task.priority for task in tasks]} | "
+            f"Due Dates={[task.due_date for task in tasks]}"
         )
         return tasks
 
@@ -57,7 +64,15 @@ class TaskViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Deny task creation for unauthenticated users"""
         # Save task with authenticated user
-        serializer.save(user=self.request.user)
+        category = None
+        if self.request.data.get("category"):
+            category = TaskCategory.objects.get(id=self.request.data.get("category"))
+        serializer.save(
+            user=self.request.user,
+            category=category,
+            priority=self.request.data.get("priority"),
+            due_date=self.request.data.get("due_date"),
+        )
 
     def perform_update(self, serializer):
         """Update task and log changes"""
@@ -65,7 +80,8 @@ class TaskViewSet(viewsets.ModelViewSet):
         task = serializer.save()
         logger.info(
             f"TASK UPDATED: ID={task.id} | "
-            f"Title='{task.title}' | Completed={task.completed}"
+            f"Title='{task.title}' | Completed={task.completed} | "
+            f"Priority={task.priority} | Due Date={task.due_date}"
         )
 
     def perform_destroy(self, instance):
@@ -111,12 +127,19 @@ class TaskViewSet(viewsets.ModelViewSet):
         previous_state = task.completed
         task.completed = not task.completed
 
+        # Update completed_at if task is marked as completed
+        if task.completed:
+            task.completed_at = timezone.now()
+        else:
+            task.completed_at = None
+
         # Save task with updated completion status
-        task.save(update_fields=["completed"])
+        task.save(update_fields=["completed", "completed_at"])
 
         logger.info(
             f"TOGGLE COMPLETE: Task ID={task.id} | "
-            f"From {previous_state} to {task.completed}"
+            f"From {previous_state} to {task.completed} | "
+            f"Completed At={task.completed_at}"
         )
 
         return Response(
@@ -126,4 +149,49 @@ class TaskViewSet(viewsets.ModelViewSet):
                 "message": f"Task marked as {'completed' if task.completed else 'pending'}",
             },
             status=status.HTTP_200_OK,
+        )
+
+
+class TaskCategoryViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet to manage Task Categories.
+    Provides CRUD operations for categories associated with the authenticated user.
+    """
+
+    serializer_class = TaskCategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Return categories filtered by the authenticated user.
+        """
+        return TaskCategory.objects.all()
+
+    def perform_create(self, serializer):
+        """
+        Associate the category with the authenticated user on creation.
+        """
+        serializer.save()
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def get_all_categories(self, request):
+        """
+        Endpoint to fetch all categories (without user filtering).
+        Endpoint: /api/categories/all/
+        """
+        categories = TaskCategory.objects.all()
+        serializer = self.get_serializer(categories, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["delete"], url_path="delete")
+    def custom_delete(self, request, pk=None):
+        """
+        Custom delete action for a specific category.
+        Endpoint: /api/categories/{id}/delete/
+        """
+        category = self.get_object()
+        category.delete()
+        return Response(
+            {"message": "Category deleted successfully"},
+            status=status.HTTP_204_NO_CONTENT,
         )

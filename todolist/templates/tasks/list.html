@@ -79,8 +79,12 @@ async function loadTasks() {
                     <tr>
                         <th>Title</th>
                         <th>Description</th>
+                        <th>Category</th>
+                        <th>Priority</th>
+                        <th>Due Date</th>
                         <th>Status</th>
                         <th>Created</th>
+                        <th>Completed</th>
                         <th>Delete</th>
                     </tr>
                 </thead>
@@ -92,6 +96,9 @@ async function loadTasks() {
                 <tr>
                     <td>${task.title}</td>
                     <td class="text-justify">${task.description || 'No description'}</td>
+                    <td>${task.category ? task.category : 'No category'}</td>
+                    <td>${task.priority}</td>
+                    <td>${task.due_date || 'No due date'}</td>
                     <td>
                         <div class="status-container d-flex flex-column align-items-center">
                             <div class="form-check form-switch">
@@ -110,6 +117,7 @@ async function loadTasks() {
                         </div>
                     </td>
                     <td>${task.created_at}</td>
+                    <td>${task.completed_at || 'Not completed yet'}</td>
                     <td>
                         <!-- Delete button -->
                         <button 
@@ -168,10 +176,7 @@ async function toggleComplete(id, checkbox) {
         return response.json();
     })
     .then(data => {
-        // Update UI
-        const statusText = checkbox.closest('.status-container').querySelector('.status-text');
-        statusText.textContent = data.completed ? 'Completed' : 'Pending';
-        statusText.className = `status-text mt-1 ${data.completed ? 'text-success' : 'text-warning'}`;
+        loadTasks();  // Reload task list
     })
     .catch(error => {
         alert(error.message);

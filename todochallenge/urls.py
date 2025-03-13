@@ -39,4 +39,14 @@ urlpatterns += [
         TemplateView.as_view(template_name="tasks/create.html"),
         name="task-create",
     ),
+    path(
+        "categories/",
+        TemplateView.as_view(template_name="categories/list.html"),
+        name="category-list",
+    ),
+    path(
+        "categories/create/",
+        TemplateView.as_view(template_name="categories/create.html"),
+        name="category-create",
+    ),
 ]

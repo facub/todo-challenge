@@ -1,0 +1,100 @@
+<!-- categories/list.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Categories</h2>
+
+<div class="card">
+    <div class="card-body">
+        <!-- Button to create a new category -->
+        <a href="{% url 'category-create' %}" class="btn btn-primary mb-3">Create New Category</a>
+
+        <!-- List of categories -->
+        <ul id="categoryList" class="list-group">
+            <!-- Categories will be dynamically loaded here -->
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Verify authentication
+        const authData = await checkAuth();
+        if (!authData) return;
+
+        // Load categories from the backend
+        loadCategories();
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        window.location.href = '/login/';
+    }
+});
+
+// Function to load categories from the backend
+async function loadCategories() {
+    try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch('/api/categories/all', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const categories = await response.json();
+            const categoryList = document.getElementById('categoryList');
+            categoryList.innerHTML = ''; // Clear previous list
+
+            if (categories.length === 0) {
+                categoryList.innerHTML = '<li class="list-group-item">No categories found.</li>';
+                return;
+            }
+
+            categories.forEach(category => {
+                const listItem = document.createElement('li');
+                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+
+                // Category name and delete button
+                listItem.innerHTML = `
+                    <span>${category.name}</span>
+                    <button class="btn btn-danger btn-sm delete-category" data-id="${category.id}">Delete</button>
+                `;
+                categoryList.appendChild(listItem);
+            });
+
+            // Add event listeners to delete buttons
+            document.querySelectorAll('.delete-category').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    const categoryId = e.target.getAttribute('data-id');
+                    await deleteCategory(categoryId);
+                    loadCategories(); // Reload categories after deletion
+                });
+            });
+        } else {
+            console.error('Failed to fetch categories:', response.statusText);
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+// Function to delete a category
+async function deleteCategory(categoryId) {
+    try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`/api/categories/${categoryId}/`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to delete category');
+        }
+    } catch (error) {
+        alert(error.message);
+    }
+}
+</script>
+{% endblock %}

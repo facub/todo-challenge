@@ -1,0 +1,110 @@
+<!-- categories/create.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Create Category</h2>
+
+<div class="card">
+    <div class="card-body">
+        <!-- Form to create a new category -->
+        <form id="createCategoryForm">
+            <div class="mb-3">
+                <label for="categoryName" class="form-label">Category Name</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="categoryName" name="name" required />
+                    <button type="submit" class="btn btn-primary">Create Category</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Message container for success/error messages -->
+        <div id="message" class="mt-3"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Verify authentication status with backend
+        const authData = await checkAuth();
+        if (!authData) return;  // Redirect if not authenticated
+    } catch (error) {
+        console.error('Authentication check failed:', error);
+        window.location.href = '/login/';
+    }
+});
+
+// Function to verify authentication
+async function checkAuth() {
+    try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            throw new Error('Authentication token not found');
+        }
+
+        const response = await fetch('/api/accounts/check-auth/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                localStorage.removeItem('auth_token');
+                window.location.href = '/login/';
+            }
+            throw new Error('Authentication validation failed');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Authentication check failed:', error);
+        window.location.href = '/login/';
+        return null;
+    }
+}
+
+// Handle form submission
+document.getElementById('createCategoryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    try {
+        const categoryName = document.getElementById('categoryName').value.trim();
+        if (!categoryName) {
+            alert('Category name is required');
+            return;
+        }
+
+        const authData = await checkAuth();
+        if (!authData) return;
+
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch('/api/categories/', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: categoryName })
+        });
+
+        if (response.ok) {
+            document.getElementById('categoryName').value = '';
+            document.getElementById('message').innerHTML = `
+                <div class="alert alert-success">Category created successfully!</div>
+            `;
+            setTimeout(() => {
+                window.location.href = '/categories/'; // Redirect to category list
+            }, 2000); // Wait 2 seconds before redirecting
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to create category');
+        }
+    } catch (error) {
+        document.getElementById('message').innerHTML = `
+            <div class="alert alert-danger">${error.message}</div>
+        `;
+    }
+});
+</script>
+{% endblock %}
